@@ -1,0 +1,51 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = 'delivery-metrics:jenkins'
+        TEST_CONTAINER = 'delivery-metrics-jenkins-check'
+        TEST_PORT = '18000'
+    }
+
+    stages {
+        stage('Pre-check Docker') {
+            steps {
+                sh 'docker version --format "Client {{.Client.Version}} / Server {{.Server.Version}}"'
+            }
+        }
+
+        stage('Build image') {
+            steps {
+                sh 'docker build -t "$IMAGE_NAME" /opt/delivery-monitoring'
+            }
+        }
+
+        stage('Smoke test metrics endpoint') {
+            steps {
+                sh '''
+                    set -eu
+                    docker rm -f "$TEST_CONTAINER" >/dev/null 2>&1 || true
+                    docker run -d --name "$TEST_CONTAINER" \\
+                      -p "${TEST_PORT}:8000" "$IMAGE_NAME" >/dev/null
+                    trap 'docker rm -f "$TEST_CONTAINER" >/dev/null 2>&1 || true' EXIT
+                    for attempt in $(seq 1 30); do
+                      if curl -fsS "http://host.docker.internal:${TEST_PORT}/metrics" \
+                        | grep -q '^pending_deliveries '; then
+                        echo 'Metrics endpoint smoke test passed'
+                        exit 0
+                      fi
+                      sleep 1
+                    done
+                    echo 'Metrics endpoint did not become ready' >&2
+                    exit 1
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker rm -f "$TEST_CONTAINER" >/dev/null 2>&1 || true'
+        }
+    }
+}

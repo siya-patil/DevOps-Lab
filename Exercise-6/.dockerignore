@@ -1,0 +1,11 @@
+.git
+.venv
+__pycache__
+*.pyc
+grafana
+jenkins
+dashboards
+README.md
+compose.yaml
+prometheus.yml
+alert_rules.yml
