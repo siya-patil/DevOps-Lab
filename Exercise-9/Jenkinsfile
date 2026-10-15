@@ -1,0 +1,68 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_PORT = '18089'
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                echo 'Creating a virtual environment and installing dependencies'
+                sh '''
+                    python3 -m venv .venv
+                    .venv/bin/python -m pip install --disable-pip-version-check -r requirements.txt
+                '''
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Running Flask unit tests'
+                sh '.venv/bin/python -m unittest discover -v -s .'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Copying application files to the mock deployment directory'
+                sh '''
+                    mkdir -p "$WORKSPACE/python-app-deploy"
+                    cp app.py requirements.txt smoke_test.py "$WORKSPACE/python-app-deploy/"
+                '''
+            }
+        }
+
+        stage('Run Application') {
+            steps {
+                echo 'Starting the deployed Flask application'
+                sh '''
+                    cd "$WORKSPACE/python-app-deploy"
+                    APP_HOST=127.0.0.1 APP_PORT="$APP_PORT" \\
+                      nohup "$WORKSPACE/.venv/bin/python" app.py > app.log 2>&1 &
+                    echo $! > app.pid
+                '''
+            }
+        }
+
+        stage('Test Application') {
+            steps {
+                echo 'Checking the deployed HTTP endpoint'
+                sh '"$WORKSPACE/.venv/bin/python" "$WORKSPACE/python-app-deploy/smoke_test.py" "http://127.0.0.1:$APP_PORT/"'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        always {
+            sh '''
+                if [ -s "$WORKSPACE/python-app-deploy/app.pid" ]; then
+                    kill "$(cat "$WORKSPACE/python-app-deploy/app.pid")" 2>/dev/null || true
+                fi
+            '''
+        }
+    }
+}
