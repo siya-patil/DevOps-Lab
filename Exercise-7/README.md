@@ -95,6 +95,10 @@ Initial unlock screen:
 
 ![Jenkins initial unlock screen showing the password file location](screenshots/jenkins-unlock.png)
 
+Signed-in Jenkins dashboard showing the configured `HelloWorld` job:
+
+![Jenkins dashboard after signing in, with the HelloWorld job visible](screenshots/jenkins-dashboard.png)
+
 ## Cleanup
 
 Stop Jenkins and remove its container/network while keeping its saved data:

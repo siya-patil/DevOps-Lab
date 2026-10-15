@@ -68,6 +68,10 @@ Finished: SUCCESS
 
 Open the [Jenkins build console](http://localhost:8080/job/HelloWorld/1/console) to view the build output.
 
+Screenshot of the successful build console:
+
+![Jenkins HelloWorld build console showing Hello, Jenkins! and Finished: SUCCESS](screenshots/helloworld-build-console.png)
+
 ## Result
 
 The local script and Git-backed Jenkins job both printed `Hello, Jenkins!`. The Jenkins build completed with `SUCCESS`.
